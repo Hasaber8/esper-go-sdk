@@ -19,7 +19,30 @@ type Auth struct {
 	Token string
 }
 
-func (request *Request) Get(endpoint string, queryParam url.Values) (map[string]interface{}, error) {
+type APIResponse struct {
+	Data map[string]interface{}
+}
+
+func (r *APIResponse) PrettyString() string {
+	prettyJson, err := json.MarshalIndent(r.Data, "", " ")
+	if err != nil {
+		return fmt.Sprintf("Error formatting JSON: %v", err)
+	}
+	return string(prettyJson)
+}
+
+// String implements the Stringer interface for default fmt.Printf behavior
+func (r *APIResponse) String() string {
+	return r.PrettyString()
+}
+
+// Get returns the underlying data
+func (r *APIResponse) Get() map[string]interface{} {
+	return r.Data
+}
+
+// Modified Get method to return APIResponse
+func (request *Request) Get(endpoint string, queryParam url.Values) (*APIResponse, error) {
 	fullURL := request.BaseURL + endpoint
 	if queryParam != nil && len(queryParam) > 0 {
 		fullURL += "?" + queryParam.Encode()
@@ -34,6 +57,8 @@ func (request *Request) Get(endpoint string, queryParam url.Values) (map[string]
 	// Add headers
 	req.Header.Add("Authorization", fmt.Sprintf("Bearer %s", request.Auth.Token))
 	req.Header.Add("Content-Type", "application/json")
+	req.Header.Add("X-Caller-Id", "Esper-sdk")
+	req.Header.Add("X-Tenant-Id", request.EnterpriseID)
 
 	// Make the request
 	resp, err := request.HTTPClient.Do(req)
@@ -63,5 +88,5 @@ func (request *Request) Get(endpoint string, queryParam url.Values) (map[string]
 		return nil, err
 	}
 
-	return result, nil
+	return &APIResponse{Data: result}, nil
 }

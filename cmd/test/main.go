@@ -2,18 +2,30 @@ package main
 
 import (
 	"fmt"
+	"os"
 
 	esperio "github.com/esper-io/esper-go"
 )
 
 func main() {
-	client := esperio.NewClient("develop", "f44373cb-1800-43c6-aab3-c81f8b1f435c", "hS5Ha4VpmZ0SkUBTBG0ZFLdEiYmJ2F")
+	enterpriseID := os.Getenv("ESPER_ENTERPRISE_ID")
+	token := os.Getenv("ESPER_TOKEN")
+
+	if enterpriseID == "" {
+		fmt.Println("Error: ESPER_ENTERPRISE_ID environment variable is required")
+		return
+	}
+	if token == "" {
+		fmt.Println("Error: ESPER_TOKEN environment variable is required")
+		return
+	}
+
+	client := esperio.NewClient("develop", enterpriseID, token)
 
 	// List devices with filters
 	filters := map[string]string{
-		"limit":  "20",
+		"limit":  "2",
 		"offset": "0",
-		"brand":  "Samsung",
 	}
 
 	devices, err := client.Device.List(filters)
