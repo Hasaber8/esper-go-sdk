@@ -5,8 +5,8 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/esper-io/esper-go/requests"
-	"github.com/esper-io/esper-go/resources"
+	"github.com/Hasaber8/esper-go-sdk/requests"
+	"github.com/Hasaber8/esper-go-sdk/resources"
 )
 
 var Request *requests.Request

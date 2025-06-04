@@ -3,7 +3,7 @@ package resources
 import (
 	"net/url"
 
-	"github.com/esper-io/esper-go/requests"
+	"github.com/Hasaber8/esper-go-sdk/requests"
 )
 
 type Device struct {
