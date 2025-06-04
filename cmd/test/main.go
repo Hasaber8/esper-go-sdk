@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"os"
 
-	esperio "github.com/esper-io/esper-go"
+	esperio "github.com/Hasaber8/esper-go-sdk"
 )
 
 func main() {

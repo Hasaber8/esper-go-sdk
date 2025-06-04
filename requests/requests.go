@@ -1,9 +1,10 @@
 package requests
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"net/url"
 )
@@ -41,17 +42,19 @@ func (r *APIResponse) Get() map[string]interface{} {
 	return r.Data
 }
 
-// Modified Get method to return APIResponse
-func (request *Request) Get(endpoint string, queryParam url.Values) (*APIResponse, error) {
+func (request *Request) Post(endpoint string, requestBody map[string]interface{}) (*APIResponse, error) {
 	fullURL := request.BaseURL + endpoint
-	if queryParam != nil && len(queryParam) > 0 {
-		fullURL += "?" + queryParam.Encode()
+
+	// Convert body to JSON with error handling
+	jsonData, err := json.Marshal(requestBody)
+	if err != nil {
+		return nil, fmt.Errorf("failed to marshal request body: %w", err)
 	}
 
 	// Create request
-	req, err := http.NewRequest("GET", fullURL, nil)
+	req, err := http.NewRequest("POST", fullURL, bytes.NewBuffer(jsonData))
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to create request: %w", err)
 	}
 
 	// Add headers
@@ -63,29 +66,78 @@ func (request *Request) Get(endpoint string, queryParam url.Values) (*APIRespons
 	// Make the request
 	resp, err := request.HTTPClient.Do(req)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("request failed: %w", err)
 	}
 	defer resp.Body.Close()
 
 	// Read response body
-	body, err := ioutil.ReadAll(resp.Body)
+	responseBody, err := io.ReadAll(resp.Body)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to read response body: %w", err)
 	}
 
 	// Handle error responses
 	if resp.StatusCode >= 400 {
 		var errorResp map[string]interface{}
-		if err = json.Unmarshal(body, &errorResp); err != nil {
-			return nil, fmt.Errorf("Error %d: %s", resp.StatusCode, string(body))
+		if err = json.Unmarshal(responseBody, &errorResp); err != nil {
+			return nil, fmt.Errorf("HTTP %d: %s", resp.StatusCode, string(responseBody))
 		}
-		return nil, fmt.Errorf("API Error: %v", errorResp)
+		return nil, fmt.Errorf("API error (HTTP %d): %v", resp.StatusCode, errorResp)
 	}
 
 	// Parse JSON response
 	var result map[string]interface{}
-	if err = json.Unmarshal(body, &result); err != nil {
-		return nil, err
+	if err = json.Unmarshal(responseBody, &result); err != nil {
+		return nil, fmt.Errorf("failed to parse response JSON: %w", err)
+	}
+
+	return &APIResponse{Data: result}, nil
+}
+
+func (request *Request) Get(endpoint string, queryParam url.Values) (*APIResponse, error) {
+	fullURL := request.BaseURL + endpoint
+	if queryParam != nil && len(queryParam) > 0 {
+		fullURL += "?" + queryParam.Encode()
+	}
+
+	// Create request
+	req, err := http.NewRequest("GET", fullURL, nil)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create request: %w", err)
+	}
+
+	// Add headers
+	req.Header.Add("Authorization", fmt.Sprintf("Bearer %s", request.Auth.Token))
+	req.Header.Add("Content-Type", "application/json")
+	req.Header.Add("X-Caller-Id", "Esper-sdk")
+	req.Header.Add("X-Tenant-Id", request.EnterpriseID)
+
+	// Make the request
+	resp, err := request.HTTPClient.Do(req)
+	if err != nil {
+		return nil, fmt.Errorf("request failed: %w", err)
+	}
+	defer resp.Body.Close()
+
+	// Read response body
+	responseBody, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return nil, fmt.Errorf("failed to read response body: %w", err)
+	}
+
+	// Handle error responses
+	if resp.StatusCode >= 400 {
+		var errorResp map[string]interface{}
+		if err = json.Unmarshal(responseBody, &errorResp); err != nil {
+			return nil, fmt.Errorf("HTTP %d: %s", resp.StatusCode, string(responseBody))
+		}
+		return nil, fmt.Errorf("API error (HTTP %d): %v", resp.StatusCode, errorResp)
+	}
+
+	// Parse JSON response
+	var result map[string]interface{}
+	if err = json.Unmarshal(responseBody, &result); err != nil {
+		return nil, fmt.Errorf("failed to parse response JSON: %w", err)
 	}
 
 	return &APIResponse{Data: result}, nil

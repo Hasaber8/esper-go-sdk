@@ -5,8 +5,8 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/esper-io/esper-go/requests"
-	"github.com/esper-io/esper-go/resources"
+	"github.com/Hasaber8/esper-go-sdk/requests"
+	"github.com/Hasaber8/esper-go-sdk/resources"
 )
 
 var Request *requests.Request
@@ -14,7 +14,8 @@ var Request *requests.Request
 type Client struct {
 
 	// Resources # todo
-	Device *resources.Device
+	Device   *resources.Device
+	Commands *resources.Commands
 }
 
 func NewClient(tenant string, enterpriseID string, token string) *Client {
@@ -30,9 +31,11 @@ func NewClient(tenant string, enterpriseID string, token string) *Client {
 	}
 
 	device := resources.Device{Request: Request}
+	commands := resources.Commands{Request: Request}
 
 	client := &Client{
-		Device: &device,
+		Device:   &device,
+		Commands: &commands,
 	}
 
 	return client
